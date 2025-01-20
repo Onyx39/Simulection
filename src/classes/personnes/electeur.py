@@ -4,7 +4,7 @@ Classe qui represente les electeurs
 
 import random as rd
 
-from candidat import Candidat
+from classes.personnes.candidat import Candidat
 
 class Electeur :
     """
