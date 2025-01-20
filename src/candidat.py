@@ -18,7 +18,7 @@ class Candidat :
     def __init__ (self, nom : str) :
         self.nom = nom
         self.positionnement = rd.randint(0, 100)
-    
+
     def __lt__ (self, other) :
         if self.positionnement < other.positionnement :
             return True
