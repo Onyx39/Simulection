@@ -15,6 +15,7 @@ class ScrutinUninominalDeuxTours :
     Entrées :
         liste_candidats (list[Candidat]) : la liste des candidats
         liste_electeurs (list[Electeurs]) : la liste des electeurs
+        vote_blanc (bool) : autorisastion du vote blanc, par défaut à False
 
     Possède :
         premier_qualifie (Candidat) : le premier candidat qualifié après le premier tour
@@ -22,19 +23,27 @@ class ScrutinUninominalDeuxTours :
         vainqueur (Candidat) : le candidat vainqueur de l'élection
     """
 
-    def __init__ (self, liste_candidats : list[Candidat], liste_electeurs : list[Electeur]) :
+    def __init__ (self, liste_candidats : list[Candidat],
+                  liste_electeurs : list[Electeur],
+                  vote_blanc : bool = False) :
         self.candidats : list[Candidat] = liste_candidats
         self.electeurs : list[Electeur] = liste_electeurs
+        self.vote_blanc : bool = vote_blanc
         self.premier_qualifie : Candidat = None
         self.second_qualife : Candidat = None
         self.vainqueur : Candidat = None
 
-    def simulation_premier_tour (self) -> None :
+
+    def simulation_premier_tour (self) -> list[Candidat] :
         """
         Simule le premier tour de l'élection.
         Met à jour les variables 'premier_qualifie' et 'second_qualifié'
+
+        Retourne la liste des deux candidat·e·s qualifié·e·s
         """
         votes = [0]*len(self.candidats)
+        if self.vote_blanc :
+            votes.append(0)
         distribution_candidats = []
         for candidat in self.candidats :
             distribution_candidats.append(candidat.positionnement)
@@ -43,25 +52,29 @@ class ScrutinUninominalDeuxTours :
         for electeur in self.electeurs :
             vote_electeur = None
             min_distance = 100
-            egalite = 0
+            # egalite = 0
             for candidat in enumerate(self.candidats) :
                 distance = abs(candidat[1].positionnement - electeur.positionnement)
                 if distance <  min_distance :
-                    min_distance = distance
-                    vote_electeur = candidat[0]
-                    electeur.assigner_candidat_favori(candidat[1])
-                if distance ==  min_distance :
-                    egalite += 1
+                    if self.vote_blanc and distance > electeur.tolerance :
+                        # print("pas assez tolérant")
+                        # votes[-1] = votes[-1] + 1
+                        pass
+                    else :
+                        min_distance = distance
+                        vote_electeur = candidat[0]
+                        electeur.assigner_candidat_favori(candidat[1])
+                # if distance ==  min_distance :
+                #     egalite += 1
                     # print("Egalite : " + str(egalite))
-            votes[vote_electeur] = votes[vote_electeur] + 1
+            if vote_electeur is not None :
+                votes[vote_electeur] = votes[vote_electeur] + 1
+            else :
+                votes[-1] = votes[-1] + 1
         print(votes, sum(votes))
-        plt.clf()
-        plt.cla()
-        plt.close()
-        sns.displot(distribution_candidats, kde=True, bins=20)
-        plt.savefig("resultats/distribution_candidats.png")
-        plt.plot(distribution_candidats, [x / len(self.electeurs) for x in votes], "go")
-        plt.savefig("resultats/votes.png")
+        if self.vote_blanc :
+            print("Nombre de votes blanc : ", votes[-1], " soit ",
+                votes[-1]/len(self.electeurs), "% des électeurs")
 
         self.premier_qualifie = self.candidats[votes.index(max(votes))]
         votes_bis = votes.copy() # .remove(max(votes))
@@ -71,9 +84,67 @@ class ScrutinUninominalDeuxTours :
         self.second_qualife = self.candidats[votes.index(max(votes_bis))]
         print(self.premier_qualifie, self.second_qualife)
 
-    def simulation_deuxieme_tour (self) -> None :
+        plt.clf()
+        plt.cla()
+        plt.close()
+        sns.displot(distribution_candidats, kde=True, bins=100)
+        plt.savefig("resultats/distribution_candidats.png")
+        plt.clf()
+        plt.cla()
+        plt.close()
+        if self.vote_blanc :
+            plt.plot(distribution_candidats, [x / len(self.electeurs) for x in votes[:-1]], "go")
+        else :
+            plt.plot(distribution_candidats, [x / len(self.electeurs) for x in votes], "go")
+        plt.savefig("resultats/votes_1er_tour.png")
+
+        return [self.premier_qualifie, self.second_qualife]
+
+
+    def simulation_deuxieme_tour (self) -> Candidat :
         """
         Simule le deuxième tour de l'élection.
-        Met à jour les variables 'premier_qualifie' et 'second_qualifié'
+        Met à jour les variables 'vainqueur'
+
+        Retourne lea candidat·e vainqueur·e
         """
-        return True
+
+        votes = [0, 0]
+        distribution_candidats = [self.premier_qualifie.positionnement,
+                                  self.second_qualife.positionnement]
+        distribution_candidats.sort()
+
+        for electeur in self.electeurs :
+            vote_electeur = None
+            min_distance = 100
+            egalite = 0
+            for candidat in enumerate([self.premier_qualifie, self.second_qualife]) :
+                distance = abs(candidat[1].positionnement - electeur.positionnement)
+                if distance <  min_distance :
+                    min_distance = distance
+                    vote_electeur = candidat[0]
+                    # electeur.assigner_candidat_favori(candidat[1])
+                if distance ==  min_distance :
+                    egalite += 1
+                    # print("Egalite : " + str(egalite))
+            votes[vote_electeur] = votes[vote_electeur] + 1
+        print(votes, sum(votes))
+
+        self.vainqueur = [self.premier_qualifie, self.second_qualife][votes.index(max(votes))]
+        print(self.vainqueur)
+
+        plt.clf()
+        plt.cla()
+        plt.close()
+        plt.plot(distribution_candidats, [x / len(self.electeurs) for x in votes], "go")
+        plt.savefig("resultats/votes_2eme_tour.png")
+
+        return self.vainqueur
+
+
+    def simulation_des_deux_tours (self) :
+        """
+        Simulation des deux tours du scrutin
+        """
+        self.simulation_premier_tour()
+        self.simulation_deuxieme_tour()

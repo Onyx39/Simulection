@@ -15,13 +15,15 @@ class Electeur :
 
     Possede :
         positionnement (int [0, 100]) : positionnement politique
+        tolerance (int [5, 80]) : toleance pour voter pour un·e candidat·e
         candidat_favori (Candidat) : candidat favori    
     """
 
     def __init__ (self, nom : str) :
-        self.nom = nom
-        self.positionnement = rd.randint(0, 100)
-        self.candidat_favori = None
+        self.nom : str = nom
+        self.positionnement : int = rd.randint(0, 100)
+        self.tolerance : int = rd.randint(1, 100)
+        self.candidat_favori  : Candidat = None
 
     def __str__ (self) :
         return f"Electeur {self.nom} ({self.positionnement})"
